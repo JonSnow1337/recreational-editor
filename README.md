@@ -1,4 +1,4 @@
-Thisais a recreational text editor 
-Toacompile run bin.sh
-F1d-> Menu
-Ctrl+c ->Exitt
+This is a a recreational text editor  
+To  compile run build.sh  
+F1-> Menu  
+Ctrl+c ->Exit  
