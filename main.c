@@ -5,7 +5,12 @@
 #include <termios.h>
 #include <unistd.h>
 #include <string.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+
 #define _GNU_SOURCE
+#define MENU_WIDTH 50
+#define MENU_HEIGHT 10
 
 int x = 0;
 int y = 0;
@@ -71,12 +76,32 @@ void deleteMenu(){
 
 
 }
+
+int send_packet(char *buf){
+    int fd;
+    struct sockaddr_in targetAddr;
+    buf = "small test";
+    fd = socket(AF_INET,SOCK_DGRAM,0);
+    if (fd < 0){
+        return -1;
+    }
+    memset(&targetAddr,0, sizeof(targetAddr));
+    targetAddr.sin_family = AF_INET;
+    targetAddr.sin_port = htons(8080);
+    targetAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    sendto(fd,buf,strlen(buf),0, (struct sockaddr*)&targetAddr, sizeof(targetAddr) );
+    close(fd);
+    return 0;
+
+}
+
 void do_menu(){
     int oldX = x;
     int oldY = y;
     if(menu_window == NULL){
         noecho();
-        menu_window = create_newwin(20,20,y,x);
+        menu_window = create_newwin(MENU_HEIGHT,MENU_WIDTH,y,x);
         int optsLen = 2;
         mvwprintw(menu_window,1,0, "| 1.Save");
         mvwprintw(menu_window,2,0, "| 2.Send Packet");
@@ -112,7 +137,7 @@ void do_menu(){
 
             }
             else if(ch == '2') {
-
+                send_packet(NULL);
             }
             else{
                 menu_on = false;
