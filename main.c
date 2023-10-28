@@ -18,10 +18,13 @@ char **strings ={0};
 bool is_running = true;
 int maxY = 1;
 char *input_file_name;
-int loaded_file_lines = 0;
+int loaded_file_lines = 1;
 WINDOW *menu_window;
 bool menu_on;
-
+int numOfLines = 50;
+int charsPerLine = 200;
+int binary_data_len = 0;
+bool hex_mode = true;
 bool isOkChar(char c){
     return (c >= 32 || c <127) && c != KEY_BACKSPACE;
 }
@@ -40,6 +43,27 @@ void loadFile(char *fileName){
     char *line;
 
     fileptr = fopen(fileName, "r");
+    int i = 0;
+    int j = 0;
+    if(hex_mode){
+        fileptr = fopen(fileName, "rb");
+        int c;
+        while((c = getc(fileptr)) != EOF){
+            // printf("i:%d j:%d ", i,j );
+            strings[i][j] = (unsigned char)c;
+            binary_data_len ++;
+            j++;
+            if(j >= charsPerLine){
+                i ++;
+                loaded_file_lines ++;
+            }
+            if(i >= numOfLines -1){
+                return;
+            }
+        }
+
+        return;
+    }
     while ((read = getline(&line, &len, fileptr)) != -1) {
        	strcpy(strings[loaded_file_lines], line);
 
@@ -153,10 +177,7 @@ void do_menu(){
 }
 
 int main(int argc, char *argv[]){
-
     disable_flow_control();
-    int numOfLines = 50;
-    int charsPerLine = 200;
     strings = (char**)malloc(numOfLines * sizeof(char*));
     for (int i = 0; i < numOfLines; i++){
         strings[i] = (char*)malloc(charsPerLine * sizeof(char));
@@ -167,14 +188,25 @@ int main(int argc, char *argv[]){
     curs_set(true);
     keypad(stdscr,true);
     noecho();
-
     if(argc > 1) {
         input_file_name = argv[1];
-        printf("%s", input_file_name);
+        //printf("%s", input_file_name);
+        printf("hello\n");
         loadFile(input_file_name);
         for (int i = 0 ; i < loaded_file_lines; i++)
         {
-          printw(strings[i]);
+            if(hex_mode){
+
+                for(int j = 0; j < binary_data_len; j++){
+                    printw("%02X", (unsigned char)strings[i][j]);
+                    printw(" ");
+
+                }
+            }
+            else{
+                printw(strings[i]);
+
+            }
 
         }
     }
