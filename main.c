@@ -21,10 +21,15 @@ char *input_file_name;
 int loaded_file_lines = 1;
 WINDOW *menu_window;
 bool menu_on;
-int numOfLines = 50;
+int numOfLines = 1000;
 int charsPerLine = 200;
 int binary_data_len = 0;
-bool hex_mode = true;
+bool hex_mode = false;
+int term_max_y;
+int term_max_x;
+int y_offset = 0;
+int max_y_offset = 0;
+int new_lines = 0;
 bool isOkChar(char c){
     return (c >= 32 || c <127) && c != KEY_BACKSPACE;
 }
@@ -34,6 +39,9 @@ void disable_flow_control() {
     tcgetattr(STDIN_FILENO, &term);
     term.c_iflag &= ~(IXON | IXOFF);
     tcsetattr(STDIN_FILENO, TCSANOW, &term);
+}
+
+void replace_percent(char *line){
 }
 
 void loadFile(char *fileName){
@@ -86,8 +94,8 @@ WINDOW *create_newwin(int height, int width, int starty, int startx)
 void save_file(char * file_name){
     FILE *fptr;
     fptr = fopen(file_name, "w");
-    for (int i = 0; i < maxY + 1; i++){
-        fprintf(fptr,"%s", strings[i]);
+    for (int i = 0; i < loaded_file_lines + new_lines; i++){
+       fprintf(fptr,"%s", strings[i]);
     }
     fclose(fptr);
 }
@@ -175,7 +183,25 @@ void do_menu(){
     }
 
 }
+void scroll_down(int y_offset){
+    wscrl(stdscr,1);
+    //-2 because for some reason cruses wont print at the last line
+     mvprintw(term_max_y-2,0,"%s",strings[term_max_y + y_offset]);
+    refresh();
+}
 
+void scroll_up(int y_offset){
+    if(y_offset <= 0){
+        return;
+        
+    }
+    mvprintw(0,0,"%s",strings[y_offset]);
+    wscrl(stdscr, -1);
+    refresh();
+
+
+    
+}
 int main(int argc, char *argv[]){
     disable_flow_control();
     strings = (char**)malloc(numOfLines * sizeof(char*));
@@ -188,30 +214,31 @@ int main(int argc, char *argv[]){
     curs_set(true);
     keypad(stdscr,true);
     noecho();
+    scrollok(stdscr, true);
+    getmaxyx(stdscr, term_max_y,term_max_x);
     if(argc > 1) {
         input_file_name = argv[1];
         //printf("%s", input_file_name);
         printf("hello\n");
         loadFile(input_file_name);
-        for (int i = 0 ; i < loaded_file_lines; i++)
+        for (int i = 0 ; i < term_max_y; i++)
         {
             if(hex_mode){
 
                 for(int j = 0; j < binary_data_len; j++){
                     printw("%02X", (unsigned char)strings[i][j]);
                     printw(" ");
-
                 }
             }
             else{
-                printw(strings[i]);
+                printw("%s",strings[i]);
 
             }
 
         }
     }
     while (is_running) {
-
+        move(y,x);
         wrefresh(stdscr);
 
         int ch = getch();
@@ -234,22 +261,42 @@ int main(int argc, char *argv[]){
             move(y,x);
         }
         else if(ch == KEY_DOWN){
-            strings[y][x] = '\n';
-            for(int i =0; i < x-1; i++){
-                if(strings[y][i] == 0){
-                    strings[y][i] = ' ';
+            if(y  + 1 >= term_max_y){
+                y_offset ++;
+                scroll_down(y_offset);
+            }else{
+                y ++;
+                if(y_offset >= max_y_offset){
+                    //we are entering uncharted teritory
+                    //TODO test if this works when scrolling below text
+                    strings[y][x] = '\n';
+                    for(int i =0; i < x-1; i++){
+                        if(strings[y][i] == 0){
+                            strings[y][i] = ' ';
+                        }
+                    }
+                    new_lines++;
                 }
+                move(y,x);      
             }
-            y ++;
-            move(y,x);      
         }
         else if(ch == KEY_UP){
-            y --;
+            if( y == 0 ){
+                scroll_up(y_offset);
+                y_offset --;
+                if(y_offset < 0){
+                    y_offset = 0;
+                }
+            }else{
+                y --;
+            }
             move(y,x);
+
         }
         else if(ch == '\n') {
             strings[y][x] = '\n';
             strings[y][x+1] = '\0';
+            new_lines ++;
             x = 0;
             y ++;
             move(y,x);
@@ -259,6 +306,8 @@ int main(int argc, char *argv[]){
             delch();
             x --;
             move(y,x);
+            //TODO check if line empty and remove it
+            //new_lines --;
         }
         else if(ch == 19){
             //ctrl+s
@@ -283,7 +332,8 @@ int main(int argc, char *argv[]){
         }
         else if(isOkChar(ch) && !menu_on){
             getyx(stdscr, y, x);
-            strings[y][x] = (char)ch;
+            //FIXME saving around y =0 is buggy
+            strings[y + y_offset][x] = (char)ch;
             x ++;
             addch(ch);
         }
@@ -291,9 +341,10 @@ int main(int argc, char *argv[]){
             maxY = y + 1;
 
         }
+        if(y_offset > max_y_offset){
+            max_y_offset = y_offset;
+        }
         getyx(stdscr, y, x);
-
-        
     }
     endwin();
 }
