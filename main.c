@@ -8,6 +8,8 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include "log.h"
+
 #define _GNU_SOURCE
 #define MENU_WIDTH 50
 #define MENU_HEIGHT 10
@@ -18,7 +20,7 @@ char **strings ={0};
 bool is_running = true;
 int maxY = 1;
 char *input_file_name;
-int loaded_file_lines = 1;
+int loaded_file_lines = 0;
 WINDOW *menu_window;
 bool menu_on;
 int numOfLines = 1000;
@@ -94,7 +96,7 @@ WINDOW *create_newwin(int height, int width, int starty, int startx)
 void save_file(char * file_name){
     FILE *fptr;
     fptr = fopen(file_name, "w");
-    for (int i = 0; i < loaded_file_lines + new_lines; i++){
+    for (int i = 0; i < loaded_file_lines + new_lines + 1; i++){
        fprintf(fptr,"%s", strings[i]);
     }
     fclose(fptr);
@@ -203,6 +205,7 @@ void scroll_up(int y_offset){
     
 }
 int main(int argc, char *argv[]){
+
     disable_flow_control();
     strings = (char**)malloc(numOfLines * sizeof(char*));
     for (int i = 0; i < numOfLines; i++){
@@ -221,7 +224,7 @@ int main(int argc, char *argv[]){
         //printf("%s", input_file_name);
         printf("hello\n");
         loadFile(input_file_name);
-        for (int i = 0 ; i < term_max_y; i++)
+        for (int i = 0 ; i < term_max_y -1; i++)
         {
             if(hex_mode){
 
@@ -332,7 +335,6 @@ int main(int argc, char *argv[]){
         }
         else if(isOkChar(ch) && !menu_on){
             getyx(stdscr, y, x);
-            //FIXME saving around y =0 is buggy
             strings[y + y_offset][x] = (char)ch;
             x ++;
             addch(ch);
