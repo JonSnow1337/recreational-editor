@@ -269,17 +269,17 @@ int main(int argc, char *argv[]){
                 scroll_down(y_offset);
             }else{
                 y ++;
-                if(y_offset >= max_y_offset){
-                    //we are entering uncharted teritory
-                    //TODO test if this works when scrolling below text
-                    strings[y][x] = '\n';
-                    for(int i =0; i < x-1; i++){
-                        if(strings[y][i] == 0){
-                            strings[y][i] = ' ';
-                        }
-                    }
-                    new_lines++;
-                }
+                // if(y_offset >= max_y_offset){
+                //     //we are entering uncharted teritory
+                //     //TODO test if this works when scrolling below text
+                //     strings[y][x] = '\n';
+                //     for(int i =0; i < x-1; i++){
+                //         if(strings[y][i] == 0){
+                //             strings[y][i] = ' ';
+                //         }
+                //     }
+                //     new_lines++;
+                // }
                 move(y,x);      
             }
         }
@@ -297,9 +297,13 @@ int main(int argc, char *argv[]){
 
         }
         else if(ch == '\n') {
-            strings[y][x] = '\n';
-            strings[y][x+1] = '\0';
-            new_lines ++;
+            //check if the line already contains a new line, in this case do not add anything
+            if(strchr(strings[y], '\n') == NULL){
+                strings[y][x] = '\n';
+                strings[y][x+1] = '\0';
+                new_lines ++;
+
+            }
             x = 0;
             y ++;
             move(y,x);
@@ -335,6 +339,7 @@ int main(int argc, char *argv[]){
         }
         else if(isOkChar(ch) && !menu_on){
             getyx(stdscr, y, x);
+            log_it(DEVEL, "%d", y_offset);
             strings[y + y_offset][x] = (char)ch;
             x ++;
             addch(ch);
