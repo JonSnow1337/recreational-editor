@@ -7,9 +7,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-
 #include "log.h"
-
 #define _GNU_SOURCE
 #define MENU_WIDTH 50
 #define MENU_HEIGHT 10
@@ -188,17 +186,18 @@ void do_menu(){
 void scroll_down(int y_offset){
     wscrl(stdscr,1);
     //-2 because for some reason cruses wont print at the last line
-     mvprintw(term_max_y-2,0,"%s",strings[term_max_y + y_offset]);
+    mvprintw(term_max_y-2,0,"%s",strings[y + y_offset]);
+    move(term_max_y -2, 0);
     refresh();
 }
 
 void scroll_up(int y_offset){
-    if(y_offset <= 0){
+    if(y_offset < 0){
         return;
         
     }
-    mvprintw(0,0,"%s",strings[y_offset]);
     wscrl(stdscr, -1);
+    mvprintw(0,0,"%s",strings[y_offset]);
     refresh();
 
 
@@ -264,7 +263,7 @@ int main(int argc, char *argv[]){
             move(y,x);
         }
         else if(ch == KEY_DOWN){
-            if(y  + 1 >= term_max_y){
+            if(y   >= term_max_y - 2 ){
                 y_offset ++;
                 scroll_down(y_offset);
             }else{
@@ -285,8 +284,9 @@ int main(int argc, char *argv[]){
         }
         else if(ch == KEY_UP){
             if( y == 0 ){
-                scroll_up(y_offset);
                 y_offset --;
+                scroll_up(y_offset);
+
                 if(y_offset < 0){
                     y_offset = 0;
                 }
@@ -339,7 +339,7 @@ int main(int argc, char *argv[]){
         }
         else if(isOkChar(ch) && !menu_on){
             getyx(stdscr, y, x);
-            log_it(DEVEL, "%d", y_offset);
+
             strings[y + y_offset][x] = (char)ch;
             x ++;
             addch(ch);
@@ -351,6 +351,11 @@ int main(int argc, char *argv[]){
         if(y_offset > max_y_offset){
             max_y_offset = y_offset;
         }
+        log_it(DEVEL, "y offset : %d", y_offset);
+        log_it(DEVEL, " y :%d", y);
+        log_it(DEVEL, "%s", strings[y + y_offset]);
+
+
         getyx(stdscr, y, x);
     }
     endwin();
