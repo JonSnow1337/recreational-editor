@@ -21,7 +21,8 @@ char *input_file_name;
 int loaded_file_lines = 0;
 WINDOW *menu_window;
 bool menu_on;
-int numOfLines = 1000;
+int numOfLines = 10;
+int array_expansion = 10;
 int charsPerLine = 200;
 int binary_data_len = 0;
 bool hex_mode = false;
@@ -43,8 +44,19 @@ void disable_flow_control() {
 
 void replace_percent(char *line){
 }
+void expand_array(int expand_num){
+    strings = (char **)realloc(strings, sizeof(char *) * (numOfLines + expand_num));
+    for(int i = numOfLines; i < numOfLines + expand_num; i++){
+        strings[i] = (char*) malloc(sizeof(char) * charsPerLine);
+        memset(strings[i], 0, charsPerLine);
+    }
+    numOfLines += expand_num;
+}
+
 
 void loadFile(char *fileName){
+    log_it(DEVEL, "%s", "hello there");
+
     FILE *fileptr;
     ssize_t read;
     size_t len = 0;
@@ -58,6 +70,12 @@ void loadFile(char *fileName){
         int c;
         while((c = getc(fileptr)) != EOF){
             // printf("i:%d j:%d ", i,j );
+            log_it(DEVEL, "%d", i);
+
+            if( i == numOfLines -1){
+                log_it(DEVEL, "%s", "expanding array");
+                expand_array(10);
+            }
             strings[i][j] = (unsigned char)c;
             binary_data_len ++;
             j++;
@@ -73,6 +91,9 @@ void loadFile(char *fileName){
         return;
     }
     while ((read = getline(&line, &len, fileptr)) != -1) {
+        if(loaded_file_lines == numOfLines){
+            expand_array(10);
+        }
        	strcpy(strings[loaded_file_lines], line);
 
         loaded_file_lines ++;
@@ -199,9 +220,6 @@ void scroll_up(int y_offset){
     wscrl(stdscr, -1);
     mvprintw(0,0,"%s",strings[y_offset]);
     refresh();
-
-
-    
 }
 int main(int argc, char *argv[]){
 
@@ -240,6 +258,11 @@ int main(int argc, char *argv[]){
         }
     }
     while (is_running) {
+
+        if ( y + y_offset  == numOfLines){
+            //we are out of memory and must allocate more
+            expand_array(10);
+        }
         move(y,x);
         wrefresh(stdscr);
 
@@ -302,7 +325,6 @@ int main(int argc, char *argv[]){
                 strings[y][x] = '\n';
                 strings[y][x+1] = '\0';
                 new_lines ++;
-
             }
             x = 0;
             y ++;
